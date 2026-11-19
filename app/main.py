@@ -121,11 +121,18 @@ def create_track(
     url: Annotated[str, Form()],
     db: DbSession,
     custom_title: Annotated[str | None, Form()] = None,
+    media_format: Annotated[str, Form(alias="format")] = media.FORMAT_MP4,
     cover: Annotated[UploadFile | None, File()] = None,
 ) -> Track:
     if not _is_valid_youtube_url(url):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid YouTube URL"
+        )
+
+    media_format = media_format.strip().lower()
+    if media_format not in media.ALLOWED_FORMATS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported format"
         )
 
     cover_bytes = cover.file.read() if cover is not None else None
@@ -136,7 +143,7 @@ def create_track(
         )
 
     try:
-        built = media.build_media(url.strip(), cover_bytes)
+        built = media.build_media(url.strip(), cover_bytes, media_format=media_format)
     except media.UnsupportedImageFormatError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
@@ -185,11 +192,13 @@ def download_track(track_id: str, db: DbSession) -> FileResponse:
             status_code=status.HTTP_404_NOT_FOUND, detail="Track file not found"
         )
 
-    filename = f"{media.sanitize_filename(track.title)}.mp4"
+    extension = path.suffix.lower() or ".mp4"
+    media_type = media.MEDIA_TYPES.get(extension, "application/octet-stream")
+    filename = f"{media.sanitize_filename(track.title)}{extension}"
     encoded = quote(filename, safe="")
     return FileResponse(
         path,
-        media_type="video/mp4",
+        media_type=media_type,
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded}"},
     )
 

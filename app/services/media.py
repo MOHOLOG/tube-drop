@@ -19,9 +19,18 @@ DEFAULT_COVER_SIZE = 800
 DEFAULT_COVER_BACKGROUND = "#2E2E32"
 DEFAULT_COVER_ICON_COLOR = "#71717A"
 MAX_COVER_SIDE = 1080
+MP3_COVER_SIZE = 1000
 JPEG_QUALITY = 85
 HASH_CHUNK_SIZE = 1024 * 1024
 FORBIDDEN_FILENAME_CHARS = frozenset('/\\:*?"<>|')
+
+FORMAT_MP4 = "mp4"
+FORMAT_MP3 = "mp3"
+ALLOWED_FORMATS = frozenset({FORMAT_MP4, FORMAT_MP3})
+MEDIA_TYPES = {
+    ".mp4": "video/mp4",
+    ".mp3": "audio/mpeg",
+}
 
 
 class MediaError(Exception):
@@ -37,6 +46,10 @@ class YtDlpError(MediaError):
 
 
 class FfmpegError(MediaError):
+    pass
+
+
+class UnsupportedFormatError(MediaError):
     pass
 
 
@@ -102,6 +115,17 @@ def process_cover(data: bytes) -> bytes:
     height = max(2, rgb_image.height - rgb_image.height % 2)
     rgb_image = rgb_image.crop((0, 0, width, height))
 
+    buffer = BytesIO()
+    rgb_image.save(buffer, format="JPEG", quality=JPEG_QUALITY)
+    return buffer.getvalue()
+
+
+def prepare_mp3_cover(data: bytes) -> bytes:
+    with Image.open(BytesIO(data)) as image:
+        rgb_image = image.convert("RGB")
+    rgb_image = rgb_image.resize(
+        (MP3_COVER_SIZE, MP3_COVER_SIZE), Image.Resampling.LANCZOS
+    )
     buffer = BytesIO()
     rgb_image.save(buffer, format="JPEG", quality=JPEG_QUALITY)
     return buffer.getvalue()
@@ -221,8 +245,45 @@ def assemble_mp4(
     return output
 
 
+def transcode_mp3(
+    audio_path: Path | str,
+    output_path: Path | str,
+    cover_path: Path | str | None = None,
+) -> Path:
+    output = Path(output_path)
+    command = ["ffmpeg", "-y", "-i", str(audio_path)]
+
+    if cover_path is not None:
+        command += [
+            "-i",
+            str(cover_path),
+            "-map",
+            "0:a",
+            "-map",
+            "1:v",
+            "-c:v",
+            "mjpeg",
+            "-id3v2_version",
+            "3",
+            "-metadata:s:v",
+            "title=Album cover",
+            "-metadata:s:v",
+            "comment=Cover (front)",
+        ]
+    else:
+        command.append("-vn")
+
+    command += ["-c:a", "libmp3lame", "-b:a", "192k", str(output)]
+
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        raise FfmpegError(result.stderr.strip() or "ffmpeg failed")
+
+    return output
+
+
 def save_media(
-    mp4_path: Path | str,
+    media_path: Path | str,
     cover_jpeg: bytes,
     media_dir: Path | str | None = None,
     covers_dir: Path | str | None = None,
@@ -234,11 +295,12 @@ def save_media(
     media_directory.mkdir(parents=True, exist_ok=True)
     covers_directory.mkdir(parents=True, exist_ok=True)
 
-    source = Path(mp4_path)
+    source = Path(media_path)
+    extension = source.suffix.lower() or f".{FORMAT_MP4}"
     file_hash = sha256_file(source)
-    target_mp4 = media_directory / f"{file_hash}.mp4"
-    if not target_mp4.exists():
-        shutil.copyfile(source, target_mp4)
+    target_media = media_directory / f"{file_hash}{extension}"
+    if not target_media.exists():
+        shutil.copyfile(source, target_media)
 
     cover_hash = hashlib.sha256(cover_jpeg).hexdigest()
     target_cover = covers_directory / f"{cover_hash}.jpg"
@@ -247,19 +309,23 @@ def save_media(
 
     return SavedMedia(
         file_hash=file_hash,
-        file_path=target_mp4,
+        file_path=target_media,
         cover_hash=cover_hash,
         cover_path=target_cover,
-        file_size_bytes=target_mp4.stat().st_size,
+        file_size_bytes=target_media.stat().st_size,
     )
 
 
 def build_media(
     url: str,
     cover: bytes | None = None,
+    media_format: str = FORMAT_MP4,
     media_dir: Path | str | None = None,
     covers_dir: Path | str | None = None,
 ) -> BuiltMedia:
+    if media_format not in ALLOWED_FORMATS:
+        raise UnsupportedFormatError(f"Unsupported format: {media_format}")
+
     cover_jpeg = (
         process_cover(cover) if cover else get_default_cover(covers_dir=covers_dir)
     )
@@ -267,10 +333,18 @@ def build_media(
     with tempfile.TemporaryDirectory(prefix="tube-drop-") as temp_dir:
         temp_path = Path(temp_dir)
         temp_cover = temp_path / "cover.jpg"
-        temp_cover.write_bytes(cover_jpeg)
+        embed_cover = (
+            prepare_mp3_cover(cover_jpeg) if media_format == FORMAT_MP3 else cover_jpeg
+        )
+        temp_cover.write_bytes(embed_cover)
 
         audio = download_audio(url, temp_path)
-        output = assemble_mp4(temp_cover, audio.path, temp_path / "output.mp4")
+        if media_format == FORMAT_MP3:
+            output = transcode_mp3(
+                audio.path, temp_path / "output.mp3", cover_path=temp_cover
+            )
+        else:
+            output = assemble_mp4(temp_cover, audio.path, temp_path / "output.mp4")
         saved = save_media(
             output,
             cover_jpeg,
