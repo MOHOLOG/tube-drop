@@ -27,4 +27,5 @@ def build_download_url(ip: str, port: int, track_id: str) -> str:
 
 
 def generate_qr_svg(url: str) -> bytes:
-    return segno.make(url).svg_inline().encode("utf-8")
+    svg = segno.make(url).svg_inline(omitsize=True)
+    return svg.encode("utf-8")

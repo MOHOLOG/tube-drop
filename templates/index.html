@@ -109,6 +109,23 @@
                 class="w-full rounded-xl border border-line bg-base px-3.5 py-2.5 text-sm text-primary placeholder:text-secondary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               />
             </div>
+
+            <div class="space-y-1.5">
+              <label
+                for="format"
+                class="block text-sm font-medium text-secondary"
+              >
+                Format
+              </label>
+              <select
+                id="format"
+                name="format"
+                class="w-full rounded-xl border border-line bg-base px-3.5 py-2.5 text-sm text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <option value="mp4">MP4 (video)</option>
+                <option value="mp3">MP3 (audio)</option>
+              </select>
+            </div>
           </div>
 
           <div class="space-y-3">
@@ -189,7 +206,7 @@
                   d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"
                 ></path>
               </svg>
-              <span id="create-label">Create MP4</span>
+              <span id="create-label">Create file</span>
             </button>
           </div>
         </form>
@@ -211,7 +228,7 @@
 
         <div
           id="tracks-grid"
-          class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
         ></div>
 
         <div
@@ -257,7 +274,7 @@
             class="h-full w-full object-cover"
           />
         </div>
-        <div class="flex flex-1 flex-col gap-3 p-4">
+        <div class="flex flex-1 flex-col gap-2 p-3">
           <h3
             data-role="title"
             class="line-clamp-2 text-sm font-semibold leading-snug"
@@ -266,25 +283,25 @@
             <span data-role="duration"></span>
             <span data-role="size"></span>
           </div>
-          <div class="mt-auto grid grid-cols-3 gap-2">
+          <div class="mt-auto grid grid-cols-3 gap-1.5">
             <button
               type="button"
               data-action="qr"
-              class="inline-flex items-center justify-center rounded-lg border border-line bg-base/60 px-2 py-2 text-xs font-medium text-primary transition hover:border-accent hover:text-accent"
+              class="inline-flex items-center justify-center rounded-lg border border-line bg-base/60 px-1.5 py-1.5 text-xs font-medium text-primary transition hover:border-accent hover:text-accent"
             >
               QR
             </button>
             <a
               data-action="download"
               href="#"
-              class="inline-flex items-center justify-center rounded-lg border border-line bg-base/60 px-2 py-2 text-xs font-medium text-primary transition hover:border-accent hover:text-accent"
+              class="inline-flex items-center justify-center rounded-lg border border-line bg-base/60 px-1.5 py-1.5 text-xs font-medium text-primary transition hover:border-accent hover:text-accent"
             >
               Download
             </a>
             <button
               type="button"
               data-action="delete"
-              class="inline-flex items-center justify-center rounded-lg border border-line bg-base/60 px-2 py-2 text-xs font-medium text-primary transition hover:border-red-500/60 hover:text-red-400"
+              class="inline-flex items-center justify-center rounded-lg border border-line bg-base/60 px-1.5 py-1.5 text-xs font-medium text-primary transition hover:border-red-500/60 hover:text-red-400"
             >
               Delete
             </button>
@@ -305,10 +322,10 @@
         class="absolute inset-0 bg-black/70 backdrop-blur-sm"
       ></div>
       <div
-        class="relative z-10 w-full max-w-sm rounded-2xl border border-line bg-card p-6 shadow-2xl"
+        class="relative z-10 w-full max-w-md rounded-2xl border border-line bg-card p-6 shadow-2xl"
       >
         <div class="mb-4 flex items-center justify-between gap-4">
-          <h2 id="qr-modal-title" class="text-base font-semibold">
+          <h2 id="qr-modal-title" class="text-base font-semibold text-white">
             Scan to download
           </h2>
           <button
@@ -333,10 +350,10 @@
 
         <div
           id="qr-content"
-          class="mx-auto flex aspect-square w-full max-w-[280px] items-center justify-center rounded-xl bg-white p-4 [&_svg]:h-full [&_svg]:w-full"
+          class="mx-auto flex aspect-square w-full max-w-[380px] items-center justify-center rounded-xl bg-white p-4 [&_svg]:h-full [&_svg]:w-full"
         ></div>
 
-        <p class="mt-4 text-center text-xs text-secondary">
+        <p class="mt-4 text-center text-sm text-white">
           Point your phone camera at the QR code, or copy the link below.
         </p>
 
@@ -345,7 +362,7 @@
             id="qr-link"
             type="text"
             readonly
-            class="min-w-0 flex-1 rounded-lg border border-line bg-base px-3 py-2 text-xs text-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            class="min-w-0 flex-1 rounded-lg border border-line bg-base px-3 py-2 text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           />
           <button
             type="button"
