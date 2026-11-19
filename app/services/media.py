@@ -1,4 +1,5 @@
 import hashlib
+import re
 import shutil
 import subprocess
 import tempfile
@@ -23,6 +24,17 @@ MP3_COVER_SIZE = 1000
 JPEG_QUALITY = 85
 HASH_CHUNK_SIZE = 1024 * 1024
 FORBIDDEN_FILENAME_CHARS = frozenset('/\\:*?"<>|')
+CONSENT_TITLE_SEPARATOR = re.compile(r"\s{3,}")
+CONSENT_TITLE_MARKERS = (
+    "Пропустить",
+    "Создать",
+    "Фото профиля",
+    "Skip",
+    "Create",
+    "profile photo",
+    "Accept all",
+    "Reject all",
+)
 
 FORMAT_MP4 = "mp4"
 FORMAT_MP3 = "mp3"
@@ -86,6 +98,20 @@ def sha256_file(path: Path | str) -> str:
         for chunk in iter(lambda: file.read(HASH_CHUNK_SIZE), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def clean_title(title: str) -> str:
+    segments = [
+        segment.strip()
+        for segment in CONSENT_TITLE_SEPARATOR.split(title)
+        if segment.strip()
+    ]
+    if len(segments) > 1 and any(
+        marker in segments[0] for marker in CONSENT_TITLE_MARKERS
+    ):
+        segments = segments[1:]
+    normalized = re.sub(r"\s+", " ", " ".join(segments)).strip()
+    return normalized or DEFAULT_FILENAME
 
 
 def sanitize_filename(title: str) -> str:
@@ -194,7 +220,7 @@ def download_audio(url: str, temp_dir: Path | str) -> DownloadedAudio:
             raise YtDlpError("Downloaded audio file was not found")
         audio_path = candidates[0]
 
-    title = str(info.get("title") or DEFAULT_FILENAME)
+    title = clean_title(str(info.get("title") or DEFAULT_FILENAME))
     duration = info.get("duration")
     duration_sec = int(duration) if duration else 0
 

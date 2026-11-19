@@ -157,7 +157,7 @@ def create_track(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)
         ) from exc
 
-    title = (custom_title or "").strip() or built.title
+    title = media.clean_title((custom_title or "").strip() or built.title)
     track = Track(
         youtube_url=url.strip(),
         title=title,
