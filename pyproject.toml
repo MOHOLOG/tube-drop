@@ -1,0 +1,25 @@
+[project]
+name = "tube-drop"
+version = "0.1.0"
+description = "Local YouTube audio-to-MP4 + QR transfer web service"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic-settings>=2.6.0",
+    "sqlalchemy>=2.0",
+    "yt-dlp>=2024.11.0",
+    "pillow>=11.0.0",
+    "segno>=1.6.0",
+    "python-multipart>=0.0.17",
+    "jinja2>=3.1.4",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.7.0",
+    "pytest>=8.3.0",
+    "httpx>=0.27.0",
+    "ruff>=0.8.0",
+]

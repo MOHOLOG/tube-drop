@@ -1,0 +1,27 @@
+.kilo/
+docs/
+.pre-commit-config
+
+AGENTS.md
+
+# Runtime data
+storage/
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
